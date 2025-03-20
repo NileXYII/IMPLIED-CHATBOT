@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMPLIED AI - Modern Chat Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .message-content code {
+            background-color: rgba(0,0,0,0.05);
+            padding: 0.1em 0.3em;
+            border-radius: 0.3em;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+        
+        .message-content pre {
+            background-color: rgba(0,0,0,0.05);
+            padding: 1.2em;
+            border-radius: 0.5em;
+            overflow-x: auto;
+            margin: 0.8em 0;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f9fafb;
+        }
+        
+        #chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.03);
+            border-radius: 3px;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.15);
+            border-radius: 3px;
+            transition: all 0.3s ease;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background: rgba(0,0,0,0.25);
+        }
+        
+        .message-bubble-user {
+            border-radius: 18px 18px 0 18px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background-image: linear-gradient(135deg, #6366f1, #4f46e5);
+        }
+        
+        .message-bubble-assistant {
+            border-radius: 18px 18px 18px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .typing-animation span {
+            animation: blink 1.4s infinite both;
+        }
+        
+        .typing-animation span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-animation span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes blink {
+            0% { opacity: 0.1; }
+            20% { opacity: 1; }
+            100% { opacity: 0.1; }
+        }
+        
+        .input-area-shadow {
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .button-hover-effect {
+            transition: all 0.2s ease;
+        }
+        
+        .button-hover-effect:hover {
+            transform: scale(1.05);
+        }
+        
+        .button-active-effect:active {
+            transform: scale(0.95);
+        }
+        
+        .header-logo {
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        
+        .new-message-animation {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .welcome-avatar {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            box-shadow: 0 4px 8px rgba(79, 70, 229, 0.3);
+        }
+        
+        .theme-toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 24px;
+            border-radius: 12px;
+            background-color: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .theme-toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .theme-toggle-switch.dark .theme-toggle-slider {
+            transform: translateX(24px);
+        }
+        
+        /* Dark mode styles */
+        .dark-mode {
+            background-color: #111827;
+            color: #e5e7eb;
+        }
+        
+        .dark-mode .message-bubble-assistant {
+            background-color: #1f2937;
+            border-color: #374151;
+        }
+        
+        .dark-mode .input-area {
+            background-color: #1f2937;
+            border-color: #374151;
+        }
+        
+        .dark-mode #user-input {
+            background-color: #1f2937;
+            color: #e5e7eb;
+        }
+        
+        .dark-mode .message-content code {
+            background-color: rgba(255,255,255,0.1);
+        }
+        
+        .dark-mode .message-content pre {
+            background-color: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.1);
+        }
+        
+        .dark-mode .scrollbar-custom::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .dark-mode .scrollbar-custom::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .dark-mode .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.25);
+        }
+    </style>
+</head>
+<body class="text-gray-800 transition-colors duration-300">
+    <div class="chat-container">
+        <header class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-4 shadow-md relative z-10">
+            <div class="container mx-auto flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-2xl header-logo">IMPLIED AI</h1>
+                    <span class="px-2 py-1 bg-white bg-opacity-20 rounded-md text-xs font-semibold">CHAT</span>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    
+                    
+                    <button id="refresh-chat" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-2 rounded-full text-sm font-medium transition-all flex items-center space-x-1">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Reset</span>
+                    </button>
+                    
+                    <a href="/" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-2 rounded-full text-sm font-medium transition-all">
+                        <i class="fas fa-home"></i>
+                        <span class="hidden md:inline ml-1">Home</span>
+                    </a>
+                </div>
+            </div>
+        </header>
+        
+        <main class="container mx-auto flex-grow flex flex-col p-4 max-w-4xl">
+            <div id="chat-messages" class="flex-grow overflow-y-auto mb-4 scrollbar-custom p-2">
+                <!-- Messages will appear here -->
+                <div class="welcome-message py-6">
+                    <div class="flex items-center justify-center mb-6">
+                        <div class="welcome-avatar w-16 h-16 rounded-full flex items-center justify-center text-white mb-4">
+                            <i class="fas fa-robot text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="text-center max-w-md mx-auto">
+                        <h2 class="text-xl font-semibold mb-2">Welcome to IMPLIED AI Chat</h2>
+                        <p class="text-gray-600 mb-6">I'm your AI assistant. How can I help you today?</p>
+                        <div class="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:justify-center">
+                            <button class="suggestion-btn px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm transition-all">
+                                How can you help me?
+                            </button>
+                            <button class="suggestion-btn px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm transition-all">
+                                Write content for me
+                            </button>
+                            <button class="suggestion-btn px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm transition-all">
+                                Answer questions
+                            </button>
+                            <button class="suggestion-btn px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm transition-all">
+                                Analyze data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="input-area" class="bg-white rounded-xl shadow-md p-3 flex items-center input-area-shadow">
+                <textarea id="user-input" placeholder="Type your message here..." class="flex-grow p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 resize-none max-h-32 rounded-lg" rows="1"></textarea>
+                <div class="flex items-center ml-2 space-x-2">
+                    <button id="attach-button" class="text-gray-400 hover:text-indigo-500 p-2 rounded-full hover:bg-indigo-50 transition-all">
+                        <i class="fas fa-paperclip"></i>
+                    </button>
+                    <button id="send-button" class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-3 rounded-full hover:opacity-90 transition-all flex items-center justify-center button-hover-effect button-active-effect">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="text-center text-xs text-gray-400 mt-3">
+                <p>AI responses may not be perfect. Consider verifying important information.</p>
+            </div>
+        </main>
+        
+        <div id="loading-indicator" class="fixed bottom-28 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-800 py-2 px-4 rounded-full shadow-lg z-10 hidden flex items-center">
+            <div class="mr-2 h-4 w-4">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500"></div>
+            </div>
+            <div class="typing-animation flex">
+                <span>Thinking</span>
+                <span>.</span>
+                <span>.</span>
+                <span>.</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+            const chatMessages = document.getElementById('chat-messages');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const themeToggle = document.getElementById('theme-toggle');
+            const refreshButton = document.getElementById('refresh-chat');
+            const body = document.body;
+            const suggestionBtns = document.querySelectorAll('.suggestion-btn');
+            
+            // Theme toggle functionality
+            themeToggle.addEventListener('click', function() {
+                this.classList.toggle('dark');
+                body.classList.toggle('dark-mode');
+                document.getElementById('input-area').classList.toggle('bg-gray-800');
+                document.getElementById('loading-indicator').classList.toggle('bg-gray-800');
+                
+                if (body.classList.contains('dark-mode')) {
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    localStorage.setItem('theme', 'light');
+                }
+            });
+            
+            // Check saved theme preference
+            if (localStorage.getItem('theme') === 'dark') {
+                themeToggle.classList.add('dark');
+                body.classList.add('dark-mode');
+                document.getElementById('input-area').classList.add('bg-gray-800');
+                document.getElementById('loading-indicator').classList.add('bg-gray-800');
+            }
+            
+            // Suggestion buttons
+            suggestionBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    userInput.value = this.textContent.trim();
+                    userInput.focus();
+                    
+                    // Adjust height to match content
+                    userInput.style.height = 'auto';
+                    userInput.style.height = (userInput.scrollHeight) + 'px';
+                });
+            });
+            
+            // Auto-resize the textarea
+            userInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+                // Reset height if empty
+                if (this.value === '') {
+                    this.style.height = 'auto';
+                }
+            });
+            
+            // Function to scroll to bottom of chat
+            function scrollToBottom() {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            // Initial scroll to bottom
+            scrollToBottom();
+            
+            // Handle send button click
+            sendButton.addEventListener('click', sendMessage);
+            
+            // Handle Enter key press
+            userInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            // Handle refresh button click
+            refreshButton.addEventListener('click', function() {
+                // Display confirmation dialog
+                if (confirm('Are you sure you want to reset the chat? This will clear all messages.')) {
+                    clearChat();
+                }
+            });
+            
+            function clearChat() {
+                // Clear chat UI
+                chatMessages.innerHTML = `
+                    <div class="welcome-message py-6">
+                        <div class="flex items-center justify-center mb-6">
+                            <div class="welcome-avatar w-16 h-16 rounded-full flex items-center justify-center text-white mb-4">
+                                <i class="fas fa-robot text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="text-center max-w-md mx-auto">
+                            <h2 class="text-xl font-semibold mb-2">Welcome to IMPLIED AI Chat</h2>
+                            <p class="text-gray-600 mb-6">I'm your AI assistant. How can I help you today?</p>
+                            <div class="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:justify-center">
+                                <button class="suggestion-btn px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm transition-all">
+                                    How can you help me?
+                                </button>
+                                <button class="suggestion-btn px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm transition-all">
+                                    Write content for me
+                                </button>
+                                <button class="suggestion-btn px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm transition-all">
+                                    Answer questions
+                                </button>
+                                <button class="suggestion-btn px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm transition-all">
+                                    Analyze data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Reset backend session via API call
+                fetch('/reset_chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showErrorMessage(data.error);
+                    }
+                    
+                    // Reattach event listeners to new suggestion buttons
+                    document.querySelectorAll('.suggestion-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            userInput.value = this.textContent.trim();
+                            userInput.focus();
+                            userInput.style.height = 'auto';
+                            userInput.style.height = (userInput.scrollHeight) + 'px';
+                        });
+                    });
+                    
+                    console.log('Chat reset successfully');
+                })
+                .catch(error => {
+                    console.error('Error resetting chat:', error);
+                    showErrorMessage('Failed to reset chat. Please try again.');
+                });
+            }
+            
+            function sendMessage() {
+                const message = userInput.value.trim();
+                if (!message) return;
+                
+                // Clear input and reset height
+                userInput.value = '';
+                userInput.style.height = 'auto';
+                
+                // Remove welcome message if it exists
+                const welcomeMessage = document.querySelector('.welcome-message');
+                if (welcomeMessage) {
+                    welcomeMessage.remove();
+                }
+                
+                // Add user message to chat
+                const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const userMessageDiv = document.createElement('div');
+                userMessageDiv.classList.add('message', 'user', 'flex', 'justify-end', 'mb-4', 'new-message-animation');
+                userMessageDiv.innerHTML = `
+                    <div class="max-w-xs md:max-w-md lg:max-w-lg">
+                        <div class="message-content p-3 text-white message-bubble-user">
+                            ${escapeHtml(message)}
+                        </div>
+                        <div class="message-timestamp text-xs text-gray-500 mt-1 text-right">
+                            ${timestamp}
+                        </div>
+                    </div>
+                `;
+                chatMessages.appendChild(userMessageDiv);
+                scrollToBottom();
+                
+                // Show loading indicator
+                loadingIndicator.classList.remove('hidden');
+                
+                // Send to backend
+                fetch('/send_message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide loading indicator
+                    loadingIndicator.classList.add('hidden');
+                    
+                    if (data.error) {
+                        showErrorMessage(data.error);
+                        return;
+                    }
+                    
+                    // Add bot response to chat
+                    const botMessageDiv = document.createElement('div');
+                    botMessageDiv.classList.add('message', 'assistant', 'flex', 'mb-4', 'new-message-animation');
+                    botMessageDiv.innerHTML = `
+                        <div class="max-w-xs md:max-w-md lg:max-w-lg">
+                            <div class="message-content p-3 bg-white dark:bg-gray-800 shadow-md message-bubble-assistant">
+                                ${formatMessage(data.message)}
+                            </div>
+                            <div class="message-timestamp text-xs text-gray-500 mt-1">
+                                ${data.timestamp}
+                            </div>
+                        </div>
+                    `;
+                    chatMessages.appendChild(botMessageDiv);
+                    scrollToBottom();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    loadingIndicator.classList.add('hidden');
+                    showErrorMessage('Failed to send message. Please try again.');
+                });
+            }
+            
+            function showErrorMessage(message) {
+                const errorDiv = document.createElement('div');
+                errorDiv.classList.add('flex', 'justify-center', 'mb-4', 'new-message-animation');
+                errorDiv.innerHTML = `
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg">
+                        ${message}
+                    </div>
+                `;
+                chatMessages.appendChild(errorDiv);
+                scrollToBottom();
+            }
+            
+            function escapeHtml(unsafe) {
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+            
+            function formatMessage(text) {
+                // Enhanced formatting for markdown
+                let formatted = text
+                    .replace(/\n/g, '<br>')
+                    // Bold
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    // Italic
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    // Inline code
+                    .replace(/`([^`]+)`/g, '<code>$1</code>');
+                
+                // Code blocks with language support
+                formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)\n```/g, function(match, language, code) {
+                    return `<pre><code class="language-${language || 'plaintext'}">${escapeHtml(code)}</code></pre>`;
+                });
+                
+                return formatted;
+            }
+        });
+    </script>
+</body>
+</html>
