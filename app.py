@@ -7,14 +7,9 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # For session management
 
-API_KEY = os.getenv("OPENROUTER_API_KEY")
-API_URL = os.getenv("OPENROUTER_API_URL")
-
-if not API_KEY:
-    raise ValueError("Missing API Key. Set OPENROUTER_API_KEY in the environment variables.")
-
-if not API_URL:
-    raise ValueError("Missing API URL. Set OPENROUTER_API_URL in the environment variables.")
+# Replace with your actual OpenRouter API key
+API_KEY = "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"
+API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 @app.route('/')
 def index():
