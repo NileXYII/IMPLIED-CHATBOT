@@ -10,14 +10,15 @@ app.secret_key = os.urandom(24)  # For session management
 # Replace with your actual OpenRouter API key
 import os
 
-API_KEY = os.getenv("OPENROUTER_API_KEY")
-API_URL = os.getenv("OPENROUTER_API_URL")
+# Replace OpenRouter references
+API_KEY = os.getenv("DEEPSEEK_API_KEY")
+API_URL = os.getenv("DEEPSEEK_API_URL")
 
 if not API_KEY:
-    raise ValueError("Missing API Key. Set OPENROUTER_API_KEY in the environment variables.")
+    raise ValueError("Missing API Key. Set DEEPSEEK_API_KEY in the environment variables.")
 
 if not API_URL:
-    raise ValueError("Missing API URL. Set OPENROUTER_API_URL in the environment variables.")
+    raise ValueError("Missing API URL. Set DEEPSEEK_API_URL in the environment variables.")
 
 
 @app.route('/')
@@ -54,18 +55,18 @@ def send_message():
         'timestamp': timestamp
     })
     
-    # Prepare message history for API
+    # Prepare message history for DeepSeek API
     messages = [{"role": msg["role"], "content": msg["content"]} 
                 for msg in session['chat_history']]
     
-    # Call DeepSeek model via OpenRouter
+    # Call DeepSeek model directly
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json"
     }
     
     payload = {
-        "model": "deepseek/deepseek-chat",  # Use the DeepSeek model
+        # Remove the model specification or update to DeepSeek's format
         "messages": messages,
         "max_tokens": 1000
     }
@@ -74,6 +75,7 @@ def send_message():
         response = requests.post(API_URL, headers=headers, json=payload)
         response.raise_for_status()  # Raise exception for HTTP errors
         
+        # Update this based on DeepSeek's response format
         bot_response = response.json()["choices"][0]["message"]["content"]
         
         # Add bot response to history
@@ -93,6 +95,6 @@ def send_message():
     except Exception as e:
         print(f"Error: {str(e)}")
         return jsonify({'error': f'Failed to get response: {str(e)}'}), 500
-
+    
 if __name__ == '__main__':
     app.run(debug=True)
