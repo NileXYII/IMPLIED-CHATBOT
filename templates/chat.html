@@ -140,7 +140,8 @@
         <!-- Chat area -->
         <main class="flex-1 overflow-hidden container mx-auto max-w-4xl flex flex-col">
             <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
-                <!-- Welcome Message -->
+                <!-- Welcome Message (shown only if chat history is empty) -->
+                {% if not chat_history %}
                 <div id="welcome-message" class="py-6 flex flex-col items-center">
                     <div class="w-16 h-16 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center text-white mb-4">
                         <i class="fas fa-robot text-2xl"></i>
@@ -166,8 +167,21 @@
                         </div>
                     </div>
                 </div>
-                
-                <!-- Messages will be added here dynamically -->
+                {% else %}
+                <!-- Display existing chat history -->
+                {% for message in chat_history %}
+                <div class="message flex mb-4 {% if message.role == 'user' %}justify-end{% endif %}">
+                    <div class="max-w-xs sm:max-w-sm md:max-w-md">
+                        <div class="{% if message.role == 'user' %}message-bubble-user p-3 text-white{% else %}message-bubble-assistant p-3 shadow-sm{% endif %}">
+                            {{ message.content|safe }}
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1 {% if message.role == 'user' %}text-right{% endif %}">
+                            {{ message.timestamp }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
             </div>
             
             <!-- Input area -->
@@ -357,59 +371,37 @@
             loadingIndicator.classList.remove('hidden');
             loadingIndicator.style.display = 'flex';
             
-            // Simulate API call (replace with actual backend call)
-            setTimeout(() => {
+            // Send message to Flask backend
+            fetch('/send_message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message }),
+            })
+            .then(response => response.json())
+            .then(data => {
                 // Hide loading indicator
                 loadingIndicator.classList.add('hidden');
                 
-                // Add simulated response
-                const responses = [
-                    "I understand you're looking for assistance with this chat interface. The current version needs improvements in mobile responsiveness and code modernization.",
-                    "I've redesigned the interface with a cleaner design and improved responsiveness. The code is now more modular and easier to maintain.",
-                    "Is there anything specific about the new design you'd like me to explain or modify further?"
-                ];
+                if (data.error) {
+                    addMessage(data.error, false, true);
+                    return;
+                }
                 
-                // Add bot response with a slight delay between messages
-                let delay = 0;
-                responses.forEach(response => {
-                    setTimeout(() => {
-                        addMessage(response, false);
-                    }, delay);
-                    delay += 500;
-                });
-                
-                // In production, replace the above with actual API call:
-                /*
-                fetch('/send_message', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ message: message }),
-                })
-                .then(response => response.json())
-                .then(data => {
-                    loadingIndicator.classList.add('hidden');
-                    
-                    if (data.error) {
-                        addMessage(data.error, false, true);
-                        return;
-                    }
-                    
-                    addMessage(data.message, false);
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    loadingIndicator.classList.add('hidden');
-                    addMessage('Failed to send message. Please try again.', false, true);
-                });
-                */
-            }, 1500);
+                addMessage(data.message, false);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                loadingIndicator.classList.add('hidden');
+                addMessage('Failed to send message. Please try again.', false, true);
+            });
         };
         
         // Clear chat functionality
         const clearChat = () => {
             if (confirm('Are you sure you want to reset the chat? This will clear all messages.')) {
+                // Clear chat UI
                 chatMessages.innerHTML = `
                     <div id="welcome-message" class="py-6 flex flex-col items-center">
                         <div class="w-16 h-16 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center text-white mb-4">
@@ -447,8 +439,7 @@
                     });
                 });
                 
-                // In production, call API to reset backend session
-                /*
+                // Reset chat session on server
                 fetch('/reset_chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
@@ -463,7 +454,6 @@
                     console.error('Error resetting chat:', error);
                     addMessage('Failed to reset chat. Please try again.', false, true);
                 });
-                */
             }
         };
         
